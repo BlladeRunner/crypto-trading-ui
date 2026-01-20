@@ -16,18 +16,33 @@ function Stat({ label, value, hint }) {
 export default function App() {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef(null);
+  const [sort, setSort] = useState({ key: "marketCap", dir: "desc" });
 
-  const filteredCoins = useMemo(() => {
+  const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return coins;
 
-    return coins.filter((c) => {
-      return (
-        c.name.toLowerCase().includes(q) ||
-        c.symbol.toLowerCase().includes(q)
-      );
+    const filtered = !q
+      ? coins
+      : coins.filter((c) => {
+          return (
+            c.name.toLowerCase().includes(q) ||
+            c.symbol.toLowerCase().includes(q)
+          );
+      });
+
+    const sorted = [...filtered].sort((a, b) => {
+      const aVal = a[sort.key];
+      const bVal = b[sort.key];
+
+      if (aVal === bVal) return 0;
+
+      const order = aVal > bVal ? 1 : -1;
+      return sort.dir === "asc" ? order : -order;
     });
-  }, [search]);
+
+    return sorted;
+  }, [search, sort]);
+
 
   useEffect(() => {
   function handleKeyDown(e) {
@@ -107,7 +122,7 @@ export default function App() {
           </div>
 
           <div className="p-4">
-            <CoinsTable coins={filteredCoins} />
+            <CoinsTable coins={visibleCoins} sort={sort} onSortChange={setSort} />
           </div>
 
         </div>

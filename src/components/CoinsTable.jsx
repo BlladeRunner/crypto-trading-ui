@@ -1,4 +1,20 @@
-export default function CoinsTable({ coins }) {
+function SortIcon({ active, dir }) {
+  if (!active) {
+    return (
+      <span className="ml-1 text-slate-600" aria-hidden="true">
+        ↕
+      </span>
+    );
+  }
+
+  return (
+    <span className="ml-1 text-amber-300" aria-hidden="true">
+      {dir === "desc" ? "↓" : "↑"}
+    </span>
+  );
+}
+
+export default function CoinsTable({ coins, sort, onSortChange }) {
   if (!coins.length) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6 text-sm text-slate-400">
@@ -7,16 +23,43 @@ export default function CoinsTable({ coins }) {
   );
 }
 
+  function toggleSort(key) {
+    onSortChange((prev) => {
+      if (prev.key !== key) return { key, dir: "desc" };
+      return { key, dir: prev.dir === "desc" ? "asc" : "desc" };
+    });
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800">
       <table className="w-full text-sm">
         <thead className="bg-slate-900/60 text-xs text-slate-400">
           <tr>
             <th className="px-4 py-3 text-left">Coin</th>
-            <th className="px-4 py-3 text-right">Price</th>
-            <th className="px-4 py-3 text-right">24h</th>
-            <th className="px-4 py-3 text-right">Market Cap</th>
-            <th className="px-4 py-3 text-right">Volume (24h)</th>
+            <th
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              onClick={() => toggleSort("price")}
+            >
+              Price <SortIcon active={sort?.key === "price"} dir={sort?.dir} />
+            </th> 
+            <th
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              onClick={() => toggleSort("change24h")}
+            >
+              24h <SortIcon active={sort?.key === "change24h"} dir={sort?.dir} />
+            </th>
+            <th
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              onClick={() => toggleSort("marketCap")}
+            >
+              Market Cap <SortIcon active={sort?.key === "marketCap"} dir={sort?.dir} />
+            </th>
+            <th
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              onClick={() => toggleSort("volume24h")}
+            >
+              Volume (24h) <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
+            </th>
             <th className="px-4 py-3 text-center">⭐</th>
           </tr>
         </thead>
