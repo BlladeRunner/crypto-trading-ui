@@ -1,6 +1,6 @@
-import { coins } from "./data/coins";
 import CoinsTable from "./components/CoinsTable";
 import useLocalStorage from "./hooks/useLocalStorage";
+import { fetchMarkets } from "./api/coingecko";
 import { useMemo, useRef, useState, useEffect } from "react";
 
 
@@ -20,6 +20,9 @@ export default function App() {
   const [sort, setSort] = useState({ key: "marketCap", dir: "desc" });
   const [watchlistIds, setWatchlistIds] = useLocalStorage("watchlistIds", []);
   const [showWatchlist, setShowWatchlist] = useState(false);
+  const [coins, setCoins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   function toggleWatchlist(id) {
     setWatchlistIds((prev) => {
@@ -27,6 +30,28 @@ export default function App() {
       return [...prev, id];
     });
   }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await fetchMarkets();
+        if (mounted) setCoins(data);
+      } catch (e) {
+        if (mounted) setError(e.message || "Fetch failed");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -142,13 +167,27 @@ export default function App() {
           </div>
 
           <div className="p-4">
-            <CoinsTable
-              coins={visibleCoins}
-              sort={sort}
-              onSortChange={setSort}
-              watchlistIds={watchlistIds}
-              onToggleWatchlist={toggleWatchlist}
-            />
+            {loading && (
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4 text-sm text-slate-400">
+                Loading market data…
+              </div>
+            )}
+
+            {error && !loading && (
+              <div className="rounded-2xl border border-rose-900/40 bg-rose-950/30 p-4 text-sm text-rose-200">
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && (
+              <CoinsTable
+                coins={visibleCoins}
+                sort={sort}
+                onSortChange={setSort}
+                watchlistIds={watchlistIds}
+                onToggleWatchlist={toggleWatchlist}
+              />
+            )}
           </div>
 
         </div>

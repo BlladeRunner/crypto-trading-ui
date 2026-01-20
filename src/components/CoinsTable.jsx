@@ -75,7 +75,17 @@ export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, on
               {/* Coin */}
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-slate-800" />
+                  <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-800">
+                    {coin.image ? (
+                      <img
+                        src={coin.image}
+                        alt=""
+                        className="h-full w-full"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                  </div>
                   <div>
                     <div className="font-medium">{coin.name}</div>
                     <div className="text-xs text-slate-400">
