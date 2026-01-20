@@ -16,7 +16,7 @@ function SortIcon({ active, dir }) {
   );
 }
 
-export default function CoinsTable({ coins, sort, onSortChange }) {
+export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, onToggleWatchlist }) {
   if (!coins.length) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6 text-sm text-slate-400">
@@ -113,7 +113,15 @@ export default function CoinsTable({ coins, sort, onSortChange }) {
               </td>
 
               {/* Watchlist */}
-              <td className="px-4 py-3 text-center text-slate-500">☆</td>
+              <td className="px-4 py-3 text-center">
+                <button
+                  className="text-slate-500 hover:text-amber-300"
+                  onClick={() => onToggleWatchlist(coin.id)}
+                  title="Toggle watchlist"
+                >
+                  {watchlistIds?.includes(coin.id) ? "★" : "☆"}
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>

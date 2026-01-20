@@ -1,5 +1,6 @@
 import { coins } from "./data/coins";
 import CoinsTable from "./components/CoinsTable";
+import useLocalStorage from "./hooks/useLocalStorage";
 import { useMemo, useRef, useState, useEffect } from "react";
 
 
@@ -17,6 +18,15 @@ export default function App() {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef(null);
   const [sort, setSort] = useState({ key: "marketCap", dir: "desc" });
+  const [watchlistIds, setWatchlistIds] = useLocalStorage("watchlistIds", []);
+  const [showWatchlist, setShowWatchlist] = useState(false);
+
+  function toggleWatchlist(id) {
+    setWatchlistIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      return [...prev, id];
+    });
+  }
 
   const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -30,7 +40,11 @@ export default function App() {
           );
       });
 
-    const sorted = [...filtered].sort((a, b) => {
+    const withWatchlistFilter = showWatchlist
+      ? filtered.filter((c) => watchlistIds.includes(c.id))
+      : filtered;  
+
+    const sorted = [...withWatchlistFilter].sort((a, b) => {
       const aVal = a[sort.key];
       const bVal = b[sort.key];
 
@@ -41,7 +55,7 @@ export default function App() {
     });
 
     return sorted;
-  }, [search, sort]);
+  }, [search, sort, showWatchlist, watchlistIds]);
 
 
   useEffect(() => {
@@ -81,8 +95,14 @@ export default function App() {
               />    
             </div>
 
-            <button className="rounded-xl border border-slate-800 px-3 py-2 text-sm hover:border-slate-700">
-              Watchlist
+            <button 
+              onClick={() => setShowWatchlist((v) => !v)}
+              className={`rounded-xl border px-3 py-2 text-sm ${
+                showWatchlist
+                ? "border-amber-400/60 bg-amber-400/10 text-amber-200"
+                : "border-slate-800 hover:border-slate-700"
+              } font-medium`}>
+              Watchlist {watchlistIds.length ? `(${watchlistIds.length})` : ""}
             </button>
             <button className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-medium text-slate-950 hover:opacity-90">
               Connect
@@ -122,7 +142,13 @@ export default function App() {
           </div>
 
           <div className="p-4">
-            <CoinsTable coins={visibleCoins} sort={sort} onSortChange={setSort} />
+            <CoinsTable
+              coins={visibleCoins}
+              sort={sort}
+              onSortChange={setSort}
+              watchlistIds={watchlistIds}
+              onToggleWatchlist={toggleWatchlist}
+            />
           </div>
 
         </div>
