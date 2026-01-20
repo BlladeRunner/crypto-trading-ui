@@ -1,3 +1,5 @@
+import { formatMoney, formatCompactUSD } from "../utils/format";
+
 function SortIcon({ active, dir }) {
   if (!active) {
     return (
@@ -85,7 +87,7 @@ export default function CoinsTable({ coins, sort, onSortChange }) {
 
               {/* Price */}
               <td className="px-4 py-3 text-right font-mono">
-                ${coin.price.toLocaleString()}
+                ${formatMoney(coin.price, 2)}
               </td>
 
               {/* 24h */}
@@ -102,12 +104,12 @@ export default function CoinsTable({ coins, sort, onSortChange }) {
 
               {/* Market Cap */}
               <td className="px-4 py-3 text-right font-mono text-slate-300">
-                ${coin.marketCap.toLocaleString()}
+                {formatCompactUSD(coin.marketCap)}
               </td>
 
               {/* Volume */}
               <td className="px-4 py-3 text-right font-mono text-slate-300">
-                ${coin.volume24h.toLocaleString()}
+                {formatCompactUSD(coin.volume24h)}
               </td>
 
               {/* Watchlist */}
