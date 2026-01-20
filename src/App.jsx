@@ -1,6 +1,8 @@
 import CoinsTable from "./components/CoinsTable";
 import useLocalStorage from "./hooks/useLocalStorage";
 import { fetchMarkets } from "./api/coingecko";
+import BlockViewLogo from "./components/BlockViewLogo";
+import Footer from "./components/Footer";
 import { useMemo, useRef, useState, useEffect } from "react";
 
 
@@ -98,16 +100,20 @@ export default function App() {
   return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Topbar */}
       <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           {/* Logo */}
-          <div className="h-8 w-8 rounded-xl bg-amber-400" />
-          <div className="font-semibold">Crypto Trading UI</div>
+          <div className="flex items-center gap-3">
+            <BlockViewLogo size={65} />
 
+            <div className="leading-tight">
+              <div className="font-semibold text-lg">BlockView</div>
+              <div className="text-xs text-slate-400">CoinScope</div>
+            </div>
+          </div>
           {/* Actions */}
           <div className="ml-auto flex items-center gap-2">
             <div className="hidden md:block">
@@ -129,7 +135,19 @@ export default function App() {
               } font-medium`}>
               Watchlist {watchlistIds.length ? `(${watchlistIds.length})` : ""}
             </button>
-            <button className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-medium text-slate-950 hover:opacity-90">
+            <button 
+              className="
+                px-4 py-2
+                rounded-xl
+                font-medium
+              text-slate-900
+              bg-orange-500
+                shadow-[0_0_18px_rgba(251,146,60,0.45)]
+                ring-1 ring-amber-300/30
+                transition
+              hover:bg-orange-400
+                hover:shadow-[0_0_22px_rgba(251,146,60,0.6)]
+                active:scale-[0.98]">
               Connect
             </button>
           </div>
@@ -191,6 +209,7 @@ export default function App() {
           </div>
 
         </div>
+        <Footer apiStatus="Live" lastUpdated="just now" />
       </main>
     </div>
   )

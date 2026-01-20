@@ -1,16 +1,12 @@
-# Crypto Trading App UI
+# BlockView ⎔
 
-Binance-style crypto screener built with **React + Vite + Tailwind CSS**.
+Modern crypto market screener (Binance-style UI) built with React + Vite + Tailwind.
 
-This project focuses on clean UI, trading-style UX, and frontend best practices.
-
-## ✨ Features
-- Binance-style dark UI
-- Crypto screener table (Coin / Price / 24h / Market Cap / Volume)
-- Search by coin name or symbol
-- Keyboard shortcut `/` to focus search
-- Responsive layout
-- Clean component structure
+## Features
+- Real-time market data (CoinGecko)
+- Sortable screener (Price, 24h, Market Cap, Volume)
+- Watchlist (LocalStorage)
+- Search hotkey (`/`)
 
 ## 🧱 Tech Stack
 - React

@@ -1,0 +1,32 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="blur"></feGaussianBlur>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                0 0 0 0.50 0" result="glowColor"></feColorMatrix>
+      <feMerge>
+        <feMergeNode in="glowColor"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+
+    <linearGradient id="tileGrad" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8A1F"></stop>
+      <stop offset="1" stop-color="#F97316"></stop>
+    </linearGradient>
+  </defs>
+
+  <!-- background tile + glow -->
+  <g filter="url(#glow)">
+    <rect x="10" y="10" width="44" height="44" rx="12" fill="url(#tileGrad)"></rect>
+  </g>
+
+  <!-- PERFECT HEX RING (flat-top regular hex) -->
+  <!-- Center: (32,32), Radius: 13 -->
+  <polygon points="45,32 38.5,43.258 25.5,43.258 19,32 25.5,20.742 38.5,20.742" fill="none" stroke="#F8FAFC" stroke-width="4.4" stroke-linejoin="round" stroke-linecap="round"></polygon>
+
+  <!-- center dot (slightly up if you want: cy=31) -->
+  <circle cx="32" cy="32" r="4.1" fill="#0F172A"></circle>
+</svg>
