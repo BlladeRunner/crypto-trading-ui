@@ -215,6 +215,7 @@ export default function App() {
                 onSortChange={setSort}
                 watchlistIds={watchlistIds}
                 onToggleWatchlist={toggleWatchlist}
+                loading={loading} 
               />
             )}
           </div>

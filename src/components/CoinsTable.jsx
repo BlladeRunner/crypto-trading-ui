@@ -1,5 +1,6 @@
 import { formatMoney, formatCompactUSD } from "../utils/format";
 import Sparkline from "./Sparkline";
+import SkeletonRow from "./SkeletonRow"; 
 
 function SortIcon({ active, dir }) {
   if (!active) {
@@ -17,14 +18,14 @@ function SortIcon({ active, dir }) {
   );
 }
 
-export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, onToggleWatchlist }) {
-  if (!coins.length) {
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6 text-sm text-slate-400">
-      No coins found. Try another search.
-    </div>
-  );
-}
+export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, onToggleWatchlist, loading }) {
+    if (!loading && !coins.length) {
+    return (
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6 text-sm text-slate-400">
+        No coins found. Try another search.
+      </div>
+    );
+  }
 
   function toggleSort(key) {
     onSortChange((prev) => {
@@ -69,83 +70,85 @@ export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, on
         </thead>
 
         <tbody>
-          {coins.map((coin) => (
-            <tr
-              key={coin.id}
-              className="border-t border-slate-800 hover:bg-slate-900/40"
-            >
-              {/* Coin */}
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-800">
-                    {coin.image ? (
-                      <img
-                        src={coin.image}
-                        alt=""
-                        className="h-full w-full"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : null}
-                  </div>
-                  <div>
-                    <div className="font-medium">{coin.name}</div>
-                    <div className="text-xs text-slate-400">
-                      {coin.symbol}
+          {loading ? (
+            Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
+          ) : (
+            coins.map((coin) => (
+              <tr
+                key={coin.id}
+                className="border-t border-slate-800 hover:bg-slate-900/40"
+              >
+                {/* Coin */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 overflow-hidden rounded-full bg-slate-800">
+                      {coin.image ? (
+                        <img
+                          src={coin.image}
+                          alt=""
+                          className="h-full w-full"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : null}
+                    </div>
+
+                    <div>
+                      <div className="font-medium">{coin.name}</div>
+                      <div className="text-xs text-slate-400">{coin.symbol}</div>
                     </div>
                   </div>
-                </div>
-              </td>
+                </td>
 
-              {/* Price */}
-              <td className="px-4 py-3 text-right font-mono">
-                ${formatMoney(coin.price, 2)}
-              </td>
+                {/* Price */}
+                <td className="px-4 py-3 text-right font-mono">
+                  ${formatMoney(coin.price, 2)}
+                </td>
 
-              {/* 24h */}
-              <td
-                className={`px-4 py-3 text-right font-mono ${
-                  coin.change24h >= 0
-                    ? "text-emerald-400"
-                    : "text-rose-400"
-                }`}
-              >
-                {coin.change24h > 0 ? "+" : ""}
-                {coin.change24h}%
-              </td>
-
-              {/* Market Cap */}
-              <td className="px-4 py-3 text-right font-mono text-slate-300">
-                {formatCompactUSD(coin.marketCap)}
-              </td>
-
-              {/* Volume */}
-              <td className="px-4 py-3 text-right font-mono text-slate-300">
-                {formatCompactUSD(coin.volume24h)}
-              </td>
-
-              {/* Trend */}
-              <td className="px-4 py-3 text-right">
-                <div className="ml-auto w-[72px]">
-                  <Sparkline
-                    data={coin.sparkline}
-                    positive={coin.change24h >= 0}
-                  />
-                </div>
-              </td>
-
-              {/* Watchlist */}
-              <td className="px-4 py-3 text-center">
-                <button
-                  className="text-slate-500 hover:text-amber-300"
-                  onClick={() => onToggleWatchlist(coin.id)}
-                  title="Toggle watchlist"
+                {/* 24h */}
+                <td
+                  className={`px-4 py-3 text-right font-mono ${
+                    coin.change24h >= 0 ? "text-emerald-400" : "text-rose-400"
+                  }`}
                 >
-                  {watchlistIds?.includes(coin.id) ? "★" : "☆"}
-                </button>
-              </td>
-            </tr>
-          ))}
+                  {coin.change24h > 0 ? "+" : ""}
+                  {coin.change24h}%
+                </td>
+
+                {/* Market Cap */}
+                <td className="px-4 py-3 text-right font-mono text-slate-300">
+                  {formatCompactUSD(coin.marketCap)}
+                </td>
+
+                {/* Volume */}
+                <td className="px-4 py-3 text-right font-mono text-slate-300">
+                  {formatCompactUSD(coin.volume24h)}
+                </td>
+
+                {/* Trend */}
+                <td className="px-4 py-3 text-right">
+                  <div className="ml-auto w-[72px]">
+                    <Sparkline
+                      data={coin.sparkline}
+                      positive={coin.change24h >= 0}
+                    />
+                  </div>
+                </td>
+
+                {/* Watchlist */}
+                <td className="px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    className="text-slate-500 hover:text-amber-300"
+                    onClick={() => onToggleWatchlist(coin.id)}
+                    title="Toggle watchlist"
+                  >
+                    {watchlistIds?.includes(coin.id) ? "★" : "☆"}
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
