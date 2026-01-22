@@ -1,4 +1,5 @@
 import { formatMoney, formatCompactUSD } from "../utils/format";
+import Sparkline from "./Sparkline";
 
 function SortIcon({ active, dir }) {
   if (!active) {
@@ -62,6 +63,7 @@ export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, on
             >
               Volume (24h) <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
             </th>
+            <th className="px-4 py-3 text-right">Trend</th>
             <th className="px-4 py-3 text-center">⭐</th>
           </tr>
         </thead>
@@ -120,6 +122,16 @@ export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, on
               {/* Volume */}
               <td className="px-4 py-3 text-right font-mono text-slate-300">
                 {formatCompactUSD(coin.volume24h)}
+              </td>
+
+              {/* Trend */}
+              <td className="px-4 py-3 text-right">
+                <div className="ml-auto w-[72px]">
+                  <Sparkline
+                    data={coin.sparkline}
+                    positive={coin.change24h >= 0}
+                  />
+                </div>
               </td>
 
               {/* Watchlist */}

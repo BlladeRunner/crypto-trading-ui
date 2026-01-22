@@ -55,6 +55,11 @@ export default function App() {
     };
   }, []);
 
+  const btc = useMemo(
+    () => coins.find((c) => c.id === "bitcoin"),
+    [coins]
+  );
+
   const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();
 
@@ -82,7 +87,7 @@ export default function App() {
     });
 
     return sorted;
-  }, [search, sort, showWatchlist, watchlistIds]);
+  }, [search, sort, showWatchlist, watchlistIds, coins]);
 
 
   useEffect(() => {
@@ -160,7 +165,13 @@ export default function App() {
         <div className="grid gap-3 md:grid-cols-3">
           <Stat label="Market" value="Risk-On" hint="Demo UI (no API yet)" />
           <Stat label="Top Gainer (24h)" value="+8.42%" hint="SOL (mock)" />
-          <Stat label="BTC" value="$43,120.55" hint="24h: +1.12%" />
+          <Stat label="BTC"   value={btc ? `$${btc.price.toLocaleString()}` : "—"}
+              hint={
+                btc
+                  ? `24h: ${btc.change24h > 0 ? "+" : ""}${btc.change24h.toFixed(2)}%`
+                  : "—"
+              } 
+          />
         </div>
 
         {/* Screener card */}
