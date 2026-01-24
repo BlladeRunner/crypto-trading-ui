@@ -25,6 +25,7 @@ export default function App() {
   const [coins, setCoins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1); 
 
   function toggleWatchlist(id) {
     setWatchlistIds((prev) => {
@@ -41,7 +42,7 @@ export default function App() {
         setLoading(true);
         setError("");
 
-        const data = await fetchMarkets();
+        const data = await fetchMarkets({ page, perPage: 100 });
         if (mounted) setCoins(data);
       } catch (e) {
         if (mounted) setError(e.message || "Fetch failed");
@@ -53,7 +54,7 @@ export default function App() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [page]);
 
   const btc = useMemo(
     () => coins.find((c) => c.id === "bitcoin"),
@@ -183,14 +184,28 @@ export default function App() {
             </span>
 
             <div className="ml-auto flex gap-2">
-              <button className="rounded-full border border-slate-800 px-3 py-1.5 text-xs hover:border-slate-700">
-                Top 100
+              <button
+                type="button"
+                onClick={() => setPage(1)}
+                className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                  page === 1
+                    ? "border-amber-400/60 bg-amber-400/10 text-amber-200"
+                    : "border-slate-800 hover:border-slate-700 text-slate-300"
+                }`}
+              >
+                Page 1 (Top 100)
               </button>
-              <button className="rounded-full border border-amber-400/60 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200">
-                Gainers
-              </button>
-              <button className="rounded-full border border-slate-800 px-3 py-1.5 text-xs hover:border-slate-700">
-                Losers
+
+              <button
+                type="button"
+                onClick={() => setPage(2)}
+                className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                  page === 2
+                    ? "border-amber-400/60 bg-amber-400/10 text-amber-200"
+                    : "border-slate-800 hover:border-slate-700 text-slate-300"
+                }`}
+              >
+                Page 2 (101–200)
               </button>
             </div>
           </div>

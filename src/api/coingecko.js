@@ -3,7 +3,7 @@ const BASE = "https://api.coingecko.com/api/v3";
 
 export async function fetchMarkets({
   vsCurrency = "usd",
-  perPage = 50,
+  perPage = 100,
   page = 1,
 } = {}) {
   const url = new URL(`${BASE}/coins/markets`);
@@ -26,7 +26,6 @@ export async function fetchMarkets({
     change24h: c.price_change_percentage_24h ?? 0,
     marketCap: c.market_cap ?? 0,
     volume24h: c.total_volume ?? 0,
-
     sparkline: c.sparkline_in_7d?.price ?? [],
   }));
 }

@@ -1,6 +1,6 @@
 import { formatMoney, formatCompactUSD } from "../utils/format";
 import Sparkline from "./Sparkline";
-import SkeletonRow from "./SkeletonRow"; 
+import SkeletonRow from "./SkeletonRow";
 
 function SortIcon({ active, dir }) {
   if (!active) {
@@ -18,8 +18,15 @@ function SortIcon({ active, dir }) {
   );
 }
 
-export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, onToggleWatchlist, loading }) {
-    if (!loading && !coins.length) {
+export default function CoinsTable({
+  coins,
+  sort,
+  onSortChange,
+  watchlistIds,
+  onToggleWatchlist,
+  loading,
+}) {
+  if (!loading && !coins.length) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6 text-sm text-slate-400">
         No coins found. Try another search.
@@ -40,38 +47,54 @@ export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, on
         <thead className="bg-slate-900/60 text-xs text-slate-400">
           <tr>
             <th className="px-4 py-3 text-left">Coin</th>
+
             <th
               className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("price")}
             >
               Price <SortIcon active={sort?.key === "price"} dir={sort?.dir} />
-            </th> 
+            </th>
+
+            {/* Trend BEFORE 24h */}
+            <th className="px-4 py-3 text-right">Trend</th>
+
             <th
               className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("change24h")}
             >
-              24h <SortIcon active={sort?.key === "change24h"} dir={sort?.dir} />
+              24h{" "}
+              <SortIcon active={sort?.key === "change24h"} dir={sort?.dir} />
             </th>
+
             <th
               className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("marketCap")}
             >
-              Market Cap <SortIcon active={sort?.key === "marketCap"} dir={sort?.dir} />
+              Market Cap{" "}
+              <SortIcon active={sort?.key === "marketCap"} dir={sort?.dir} />
             </th>
+
             <th
               className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("volume24h")}
             >
-              Volume (24h) <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
+              Volume (24h){" "}
+              <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
             </th>
-            <th className="px-4 py-3 text-right">Trend</th>
+
             <th className="px-4 py-3 text-center">⭐</th>
           </tr>
         </thead>
 
         <tbody>
           {loading ? (
-            Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
+            Array.from({ length: 10 }).map((_, i) => (
+              <tr key={i} className="border-t border-slate-800">
+                <td colSpan={7} className="p-0">
+                  <SkeletonRow />
+                </td>
+              </tr>
+            ))
           ) : (
             coins.map((coin) => (
               <tr
@@ -105,6 +128,16 @@ export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, on
                   ${formatMoney(coin.price, 2)}
                 </td>
 
+                {/* Trend BEFORE 24h */}
+                <td className="px-4 py-3 text-right">
+                  <div className="ml-auto w-[72px]">
+                    <Sparkline
+                      data={coin.sparkline}
+                      positive={coin.change24h >= 0}
+                    />
+                  </div>
+                </td>
+
                 {/* 24h */}
                 <td
                   className={`px-4 py-3 text-right font-mono ${
@@ -123,16 +156,6 @@ export default function CoinsTable({ coins, sort, onSortChange, watchlistIds, on
                 {/* Volume */}
                 <td className="px-4 py-3 text-right font-mono text-slate-300">
                   {formatCompactUSD(coin.volume24h)}
-                </td>
-
-                {/* Trend */}
-                <td className="px-4 py-3 text-right">
-                  <div className="ml-auto w-[72px]">
-                    <Sparkline
-                      data={coin.sparkline}
-                      positive={coin.change24h >= 0}
-                    />
-                  </div>
                 </td>
 
                 {/* Watchlist */}
