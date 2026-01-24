@@ -25,7 +25,8 @@ export default function App() {
   const [coins, setCoins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1); 
+  const [page, setPage] = useState(1);
+  const [btcCoin, setBtcCoin] = useState(null); 
 
   function toggleWatchlist(id) {
     setWatchlistIds((prev) => {
@@ -43,7 +44,13 @@ export default function App() {
         setError("");
 
         const data = await fetchMarkets({ page, perPage: 100 });
-        if (mounted) setCoins(data);
+
+        if (!mounted) return;
+
+        setCoins(data);
+
+        const foundBtc = data.find((c) => c.id === "bitcoin");
+        if (foundBtc) setBtcCoin(foundBtc);
       } catch (e) {
         if (mounted) setError(e.message || "Fetch failed");
       } finally {
@@ -56,10 +63,7 @@ export default function App() {
     };
   }, [page]);
 
-  const btc = useMemo(
-    () => coins.find((c) => c.id === "bitcoin"),
-    [coins]
-  );
+  const btc = btcCoin;
 
   const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();

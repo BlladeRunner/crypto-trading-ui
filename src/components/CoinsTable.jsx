@@ -49,37 +49,46 @@ export default function CoinsTable({
             <th className="px-4 py-3 text-left">Coin</th>
 
             <th
-              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("price")}
             >
-              Price <SortIcon active={sort?.key === "price"} dir={sort?.dir} />
+              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
+                Price <SortIcon active={sort?.key === "price"} dir={sort?.dir} />
+              </span>              
             </th>
 
             {/* Trend BEFORE 24h */}
-            <th className="px-4 py-3 text-right">Trend</th>
+            <th className="px-4 py-3 text-right whitespace-nowrap">Trend</th>
 
             <th
-              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("change24h")}
             >
-              24h{" "}
-              <SortIcon active={sort?.key === "change24h"} dir={sort?.dir} />
+              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
+                24h 
+                <SortIcon active={sort?.key === "change24h"} dir={sort?.dir} />
+              </span>              
             </th>
 
             <th
-              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("marketCap")}
             >
-              Market Cap{" "}
-              <SortIcon active={sort?.key === "marketCap"} dir={sort?.dir} />
+              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
+                Market Cap
+                <SortIcon active={sort?.key === "marketCap"} dir={sort?.dir} />
+              </span>              
             </th>
 
             <th
-              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("volume24h")}
             >
-              Volume (24h){" "}
-              <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
+              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
+                Volume (24h)
+                <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
+              </span>
+              
             </th>
 
             <th className="px-4 py-3 text-center">⭐</th>
