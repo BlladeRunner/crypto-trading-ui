@@ -34,7 +34,21 @@ function CoinSelect({ label, coins, value, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2 text-sm outline-none focus:border-amber-400"
+        className="
+          mt-2 w-full rounded-xl
+          border border-slate-800
+        bg-slate-950/50
+          px-3 py-2 text-sm
+          outline-none focus:border-amber-400
+          appearance-none
+          pr-12
+          bg-no-repeat
+          bg-[length:20px_20px]
+          bg-[position:right_1.25rem_center]
+        "
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23CBD5E1' stroke-width='2'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+        }}
       >
         <option value="">Select a coin…</option>
         {coins.map((c) => (
@@ -292,8 +306,20 @@ export default function CryptoCompare({ coinsList }) {
                     }}
                     labelFormatter={(ms) => new Date(ms).toLocaleString()}
                   />
-                  <Line type="monotone" dataKey="Ap" dot={false} strokeWidth={2.2} />
-                  <Line type="monotone" dataKey="Bp" dot={false} strokeWidth={2.2} />
+                  <Line 
+                    type="monotone"
+                    dataKey="Ap"
+                    dot={false}
+                    stroke="#F97316"   // orange (A)
+                    strokeWidth={2.4} 
+                  />
+                  <Line 
+                    type="monotone"
+                    dataKey="Bp"
+                    dot={false}
+                    stroke="#38BDF8"   // blue (B)
+                    strokeWidth={2.4} 
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
