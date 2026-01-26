@@ -1,3 +1,5 @@
+import { ArrowLeftRight } from "lucide-react";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
@@ -126,6 +128,14 @@ export default function CryptoCompare({ coinsList }) {
   const aLast = aRaw?.length ? aRaw[aRaw.length - 1].v : null;
   const bLast = bRaw?.length ? bRaw[bRaw.length - 1].v : null;
 
+  {/* Switch coins button */}
+  function switchCoins() {
+    const a = coinA;
+    const b = coinB;
+    setCoinA(b);
+    setCoinB(a);
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -162,7 +172,7 @@ export default function CryptoCompare({ coinsList }) {
       <div className="flex flex-col gap-3 border-b border-slate-800 px-4 py-3 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="text-sm font-semibold">Crypto Compare</div>
-          <div className="text-xs text-slate-400">
+          <div className="mt-2 text-xs text-slate-400">
             Compare two coins by normalized performance (% from start of period)
           </div>
         </div>
@@ -185,25 +195,63 @@ export default function CryptoCompare({ coinsList }) {
 
       {/* Body */}
       <div className="p-4">
-        <div className="grid gap-3 md:grid-cols-2">
-          <CoinSelect
-            label="Coin A"
-            coins={coins}
-            value={coinA}
-            onChange={(id) => {
-              if (id && id === coinB) return;
-              setCoinA(id);
-            }}
-          />
-          <CoinSelect
-            label="Coin B"
-            coins={coins}
-            value={coinB}
-            onChange={(id) => {
-              if (id && id === coinA) return;
-              setCoinB(id);
-            }}
-          />
+        <div className="relative mt-2 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+          <div className>
+            <CoinSelect
+              label="Coin A"
+              coins={coins}
+              value={coinA}
+              onChange={(id) => {
+                if (id && id === coinB) return;
+                setCoinA(id);
+              }}
+            />
+          </div>
+          
+          {/* Switch button (between) */}
+          <div className="relative z-10 flex justify-center">
+            <button
+              type="button"
+              onClick={switchCoins}
+              className="
+                group
+                h-11 w-11 rounded-full
+                border border-amber-400/60
+              bg-amber-400/10
+              text-amber-200
+                shadow-[0_0_18px_rgba(245,158,11,0.25)]
+                ring-1 ring-amber-300/20
+                transition
+              hover:bg-amber-400/15
+                hover:shadow-[0_0_22px_rgba(245,158,11,0.35)]
+                active:scale-[0.96]
+              "
+              title="Switch coins"
+              aria-label="Switch coins"
+            >
+              <ArrowLeftRight
+                size={18}
+                strokeWidth={2.2}
+                className="
+                  mx-auto
+                  transition-transform
+                  group-hover:rotate-180
+                "
+              />
+            </button>
+          </div>
+
+          <div className>
+            <CoinSelect
+              label="Coin B"
+              coins={coins}
+              value={coinB}
+              onChange={(id) => {
+                if (id && id === coinA) return;
+                setCoinB(id);
+              }}
+            />
+          </div>
         </div>
 
         {/* Quick stats */}

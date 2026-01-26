@@ -6,6 +6,7 @@ import { fetchMarkets } from "./api/coingecko";
 import BlockViewLogo from "./components/BlockViewLogo";
 import Footer from "./components/Footer";
 import CryptoCompare from "./components/CryptoCompare";
+import ExitPoints from "./components/ExitPoints";
 
 function Stat({ label, value, hint }) {
   return (
@@ -47,6 +48,13 @@ function SegmentedTabs({ value, onChange, items }) {
   );
 }
 
+// --- fixed view ids
+const VIEW_TOP_100 = 1;
+const VIEW_101_200 = 2;
+const VIEW_201_300 = 3;
+const VIEW_COMPARE = 4;
+const VIEW_EXIT_POINTS = 5;
+
 export default function App() {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef(null);
@@ -56,14 +64,18 @@ export default function App() {
   const [watchlistIds, setWatchlistIds] = useLocalStorage("watchlistIds", []);
   const [showWatchlist, setShowWatchlist] = useState(false);
 
-  // Pages:
-  // 1 => Top 100
-  // 2 => 101–200
-  // 3 => Crypto Compare
-  const [page, setPage] = useState(1);
+  // current view tab
+  const [page, setPage] = useState(VIEW_TOP_100);
 
-  // кеш по страницам
-  const [coinsByPage, setCoinsByPage] = useState({ 1: [], 2: [] });
+  // market pages cache
+  const [coinsByPage, setCoinsByPage] = useState({
+    [VIEW_TOP_100]: [],
+    [VIEW_101_200]: [],
+    [VIEW_201_300]: [],
+  });
+
+  // BTC for stats
+  const [btcCoin, setBtcCoin] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -92,44 +104,60 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // --- fetch logic
+  // --- which pages should be fetched now
   const shouldFetchPages = useMemo(() => {
-    if (page === 3) return [1, 2];
-    if (showWatchlist) return [1, 2];
-    return page === 2 ? [2] : [1];
+    // if watchlist enabled — ensure all coin pages are loaded
+    if (showWatchlist) return [VIEW_TOP_100, VIEW_101_200, VIEW_201_300];
+
+    // only fetch when we are on coin pages; Compare/Exit don't need markets fetch
+    if ([VIEW_TOP_100, VIEW_101_200, VIEW_201_300].includes(page)) return [page];
+
+    return [];
   }, [page, showWatchlist]);
 
+  // --- fetch markets (Top100 / 101-200 / 201-300)
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      const pagesToFetch = shouldFetchPages;
+      if (pagesToFetch.length === 0) return;
+
       try {
         setLoading(true);
         setError("");
 
-        const pagesToFetch = shouldFetchPages;
+        // fetch only missing pages
+        const missing = pagesToFetch.filter(
+          (p) => !coinsByPage[p] || coinsByPage[p].length === 0
+        );
 
-        const tasks = pagesToFetch
-          .filter((p) => !coinsByPage[p] || coinsByPage[p].length === 0)
-          .map((p) => fetchMarkets({ page: p, perPage: 100 }));
-
-        if (tasks.length === 0) {
-          if (!cancelled) setLoading(false);
+        if (missing.length === 0) {
+          // already in cache
           return;
         }
 
-        const results = await Promise.all(tasks);
+        const results = await Promise.all(
+          missing.map((p) => fetchMarkets({ page: p, perPage: 100 }))
+        );
+
         if (cancelled) return;
 
         setCoinsByPage((prev) => {
           const next = { ...prev };
-          let idx = 0;
-          for (const p of pagesToFetch) {
-            if (!prev[p] || prev[p].length === 0) {
-              next[p] = results[idx];
-              idx += 1;
-            }
-          }
+          missing.forEach((p, i) => {
+            next[p] = results[i];
+          });
+
+          // update BTC stats from all loaded pages
+          const all = [
+            ...(next[VIEW_TOP_100] || []),
+            ...(next[VIEW_101_200] || []),
+            ...(next[VIEW_201_300] || []),
+          ];
+          const foundBtc = all.find((c) => c.id === "bitcoin") || null;
+          setBtcCoin(foundBtc);
+
           return next;
         });
       } catch (e) {
@@ -146,27 +174,21 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldFetchPages]);
 
-  // --- derive "coins" for current view
+  // --- coins for current coin-page view
   const coinsForView = useMemo(() => {
-    if (page === 1) return coinsByPage[1] || [];
-    if (page === 2) return coinsByPage[2] || [];
-    // page 3: сравнение — таблицу не показываем
+    if (page === VIEW_TOP_100) return coinsByPage[VIEW_TOP_100] || [];
+    if (page === VIEW_101_200) return coinsByPage[VIEW_101_200] || [];
+    if (page === VIEW_201_300) return coinsByPage[VIEW_201_300] || [];
     return [];
   }, [page, coinsByPage]);
 
-  const btc = useMemo(() => {
-    const a = coinsByPage[1] || [];
-    const b = coinsByPage[2] || highlightEmpty([]);
-    const found = [...a, ...b].find((c) => c.id === "bitcoin");
-    return found || null;
-
-    function highlightEmpty(x) {
-      return x;
-    }
-  }, [coinsByPage]);
-
-  const coinsListForCompare = useMemo(() => {
-    const all = [...(coinsByPage[1] || []), ...(coinsByPage[2] || [])];
+  // --- list for Compare/Exit (all loaded pages)
+  const coinsListForTools = useMemo(() => {
+    const all = [
+      ...(coinsByPage[VIEW_TOP_100] || []),
+      ...(coinsByPage[VIEW_101_200] || []),
+      ...(coinsByPage[VIEW_201_300] || []),
+    ];
     return all.map(({ id, name, symbol }) => ({ id, name, symbol }));
   }, [coinsByPage]);
 
@@ -174,11 +196,16 @@ export default function App() {
   const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();
 
+    // base set
     const base = showWatchlist
-      ? [...(coinsByPage[1] || []), ...(coinsByPage[2] || [])]
+      ? [
+          ...(coinsByPage[VIEW_TOP_100] || []),
+          ...(coinsByPage[VIEW_101_200] || []),
+          ...(coinsByPage[VIEW_201_300] || []),
+        ]
       : coinsForView;
 
-    // 2) search
+    // search
     const filtered = !q
       ? base
       : base.filter((c) => {
@@ -188,18 +215,16 @@ export default function App() {
           );
         });
 
-    // 3) watchlist filter (if enabled)
+    // watchlist filter
     const withWatchlistFilter = showWatchlist
       ? filtered.filter((c) => watchlistIds.includes(c.id))
       : filtered;
 
-    // 4) sort
+    // sort
     const sorted = [...withWatchlistFilter].sort((a, b) => {
       const aVal = a?.[sort.key];
       const bVal = b?.[sort.key];
-
       if (aVal === bVal) return 0;
-
       const order = aVal > bVal ? 1 : -1;
       return sort.dir === "asc" ? order : -order;
     });
@@ -233,6 +258,7 @@ export default function App() {
               />
             </div>
 
+            {/* Watchlist */}
             <button
               type="button"
               onClick={() => setShowWatchlist((v) => !v)}
@@ -275,10 +301,10 @@ export default function App() {
           <Stat label="Top Gainer (24h)" value="+8.42%" hint="SOL (mock)" />
           <Stat
             label="BTC"
-            value={btc ? `$${btc.price.toLocaleString()}` : "—"}
+            value={btcCoin ? `$${btcCoin.price.toLocaleString()}` : "—"}
             hint={
-              btc
-                ? `24h: ${btc.change24h > 0 ? "+" : ""}${btc.change24h.toFixed(
+              btcCoin
+                ? `24h: ${btcCoin.change24h > 0 ? "+" : ""}${btcCoin.change24h.toFixed(
                     2
                   )}%`
                 : "—"
@@ -299,9 +325,11 @@ export default function App() {
                 value={page}
                 onChange={setPage}
                 items={[
-                  { value: 3, label: "Crypto Compare" },
-                  { value: 1, label: "Top 100" },
-                  { value: 2, label: "101–200" },
+                  { value: VIEW_COMPARE, label: "Crypto Compare" },
+                  { value: VIEW_EXIT_POINTS, label: "Exit Points" },
+                  { value: VIEW_TOP_100, label: "Top 100" },
+                  { value: VIEW_101_200, label: "101–200" },
+                  { value: VIEW_201_300, label: "201–300" },
                 ]}
               />
             </div>
@@ -322,8 +350,10 @@ export default function App() {
 
             {!error && (
               <>
-                {page === 3 ? (
-                  <CryptoCompare coinsList={coinsListForCompare} />
+                {page === VIEW_COMPARE ? (
+                  <CryptoCompare coinsList={coinsListForTools} />
+                ) : page === VIEW_EXIT_POINTS ? (
+                  <ExitPoints coinsList={coinsListForTools} />
                 ) : (
                   <CoinsTable
                     coins={visibleCoins}

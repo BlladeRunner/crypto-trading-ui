@@ -46,70 +46,64 @@ export default function CoinsTable({
       <table className="w-full text-sm">
         <thead className="bg-slate-900/60 text-xs text-slate-400">
           <tr>
+            {/* Watchlist FIRST */}
+            <th className="w-12 px-4 py-3 text-center">⭐</th>
+
             <th className="px-4 py-3 text-left">Coin</th>
 
             <th
-              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("price")}
             >
-              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
-                Price <SortIcon active={sort?.key === "price"} dir={sort?.dir} />
-              </span>              
+              Price <SortIcon active={sort?.key === "price"} dir={sort?.dir} />
             </th>
 
-            {/* Trend BEFORE 24h */}
-            <th className="px-4 py-3 text-right whitespace-nowrap">Trend</th>
+            <th className="px-4 py-3 text-right">Trend</th>
 
             <th
-              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("change24h")}
             >
-              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
-                24h 
-                <SortIcon active={sort?.key === "change24h"} dir={sort?.dir} />
-              </span>              
+              24h <SortIcon active={sort?.key === "change24h"} dir={sort?.dir} />
             </th>
 
             <th
-              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("marketCap")}
             >
-              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
-                Market Cap
-                <SortIcon active={sort?.key === "marketCap"} dir={sort?.dir} />
-              </span>              
+              Market Cap <SortIcon active={sort?.key === "marketCap"} dir={sort?.dir} />
             </th>
 
             <th
-              className="px-4 py-3 cursor-pointer select-none hover:text-slate-200"
+              className="px-4 py-3 text-right cursor-pointer select-none hover:text-slate-200"
               onClick={() => toggleSort("volume24h")}
             >
-              <span className="inline-flex items-center justify-end w-full gap-1 text-right whitespace-nowrap">
-                Volume (24h)
-                <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
-              </span>
-              
+              Volume (24h) <SortIcon active={sort?.key === "volume24h"} dir={sort?.dir} />
             </th>
-
-            <th className="px-4 py-3 text-center">⭐</th>
           </tr>
         </thead>
 
         <tbody>
           {loading ? (
-            Array.from({ length: 10 }).map((_, i) => (
-              <tr key={i} className="border-t border-slate-800">
-                <td colSpan={7} className="p-0">
-                  <SkeletonRow />
-                </td>
-              </tr>
-            ))
+            Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
           ) : (
             coins.map((coin) => (
               <tr
                 key={coin.id}
                 className="border-t border-slate-800 hover:bg-slate-900/40"
               >
+                {/* Watchlist FIRST */}
+                <td className="px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    className="text-slate-500 hover:text-amber-300"
+                    onClick={() => onToggleWatchlist(coin.id)}
+                    title="Toggle watchlist"
+                  >
+                    {watchlistIds?.includes(coin.id) ? "★" : "☆"}
+                  </button>
+                </td>
+
                 {/* Coin */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -137,13 +131,10 @@ export default function CoinsTable({
                   ${formatMoney(coin.price, 2)}
                 </td>
 
-                {/* Trend BEFORE 24h */}
+                {/* Trend */}
                 <td className="px-4 py-3 text-right">
                   <div className="ml-auto w-[72px]">
-                    <Sparkline
-                      data={coin.sparkline}
-                      positive={coin.change24h >= 0}
-                    />
+                    <Sparkline data={coin.sparkline} positive={coin.change24h >= 0} />
                   </div>
                 </td>
 
@@ -165,18 +156,6 @@ export default function CoinsTable({
                 {/* Volume */}
                 <td className="px-4 py-3 text-right font-mono text-slate-300">
                   {formatCompactUSD(coin.volume24h)}
-                </td>
-
-                {/* Watchlist */}
-                <td className="px-4 py-3 text-center">
-                  <button
-                    type="button"
-                    className="text-slate-500 hover:text-amber-300"
-                    onClick={() => onToggleWatchlist(coin.id)}
-                    title="Toggle watchlist"
-                  >
-                    {watchlistIds?.includes(coin.id) ? "★" : "☆"}
-                  </button>
                 </td>
               </tr>
             ))
