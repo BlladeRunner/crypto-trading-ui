@@ -1,39 +1,26 @@
 // src/api/coingecko.js
 const BASE = "https://api.coingecko.com/api/v3";
 
-/* ----------------------------------------
-   Safe fetch with basic rate-limit handling
------------------------------------------ */
 async function safeFetch(url) {
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-    },
-  });
-
+  const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 429) {
       throw new Error("Rate limit (429). Try again in ~30–60 seconds.");
     }
-    if (res.status === 401) {
-      throw new Error("Unauthorized (401). CoinGecko blocked the request.");
-    }
     throw new Error(`HTTP ${res.status}`);
   }
-
   return res.json();
 }
 
-/* ----------------------------------------
-   Markets list (Top 100 / 200 / 300)
------------------------------------------ */
+/**
+ * Markets list (Top 100 / 101–200 / 201–300)
+ */
 export async function fetchMarkets({
   vsCurrency = "usd",
   perPage = 100,
   page = 1,
 } = {}) {
   const url = new URL(`${BASE}/coins/markets`);
-
   url.searchParams.set("vs_currency", vsCurrency);
   url.searchParams.set("order", "market_cap_desc");
   url.searchParams.set("per_page", String(perPage));
@@ -56,10 +43,11 @@ export async function fetchMarkets({
   }));
 }
 
-/* ----------------------------------------
-   Market chart for Crypto Compare
-   returns: [{ t, v }]
------------------------------------------ */
+/**
+ * Market chart (used by CryptoCompare)
+ * days: 7 | 30 | 90 | 365
+ * returns: [{ t, v }]
+ */
 export async function fetchMarketChart({
   id,
   vsCurrency = "usd",
@@ -68,19 +56,12 @@ export async function fetchMarketChart({
   if (!id) throw new Error("Missing coin id");
 
   const url = new URL(`${BASE}/coins/${encodeURIComponent(id)}/market_chart`);
-
   url.searchParams.set("vs_currency", vsCurrency);
   url.searchParams.set("days", String(days));
-
-  // IMPORTANT:
-  // hourly often triggers rate limits → use daily always
-  url.searchParams.set("interval", "daily");
+  url.searchParams.set("interval", days <= 30 ? "hourly" : "daily");
 
   const json = await safeFetch(url.toString());
 
   const prices = Array.isArray(json?.prices) ? json.prices : [];
-
-  return prices
-    .filter((p) => Array.isArray(p) && p.length >= 2)
-    .map(([t, v]) => ({ t, v }));
+  return prices.map(([t, v]) => ({ t, v }));
 }

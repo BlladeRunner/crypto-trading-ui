@@ -1,12 +1,30 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 
 import CoinsTable from "./components/CoinsTable";
-import useLocalStorage from "./hooks/useLocalStorage";
-import { fetchMarkets } from "./api/coingecko";
 import BlockViewLogo from "./components/BlockViewLogo";
 import Footer from "./components/Footer";
 import CryptoCompare from "./components/CryptoCompare";
 import ExitPoints from "./components/ExitPoints";
+
+import useLocalStorage from "./hooks/useLocalStorage";
+import { fetchMarkets } from "./api/coingecko";
+
+/* ---------- UI page ids (KEEP OUTSIDE App) ---------- */
+const PAGE_TOP100 = 1;
+const PAGE_101_200 = 2;
+const PAGE_COMPARE = 3;
+const PAGE_EXIT = 4;
+const PAGE_201_300 = 5;
+
+const COIN_UI_PAGES = [PAGE_TOP100, PAGE_101_200, PAGE_201_300];
+
+// Map UI page -> CoinGecko markets "page"
+function marketPageFromUiPage(uiPage) {
+  if (uiPage === PAGE_TOP100) return 1;
+  if (uiPage === PAGE_101_200) return 2;
+  if (uiPage === PAGE_201_300) return 3;
+  return null;
+}
 
 function Stat({ label, value, hint }) {
   return (
@@ -48,13 +66,6 @@ function SegmentedTabs({ value, onChange, items }) {
   );
 }
 
-// --- fixed view ids
-const VIEW_TOP_100 = 1;
-const VIEW_101_200 = 2;
-const VIEW_201_300 = 3;
-const VIEW_COMPARE = 4;
-const VIEW_EXIT_POINTS = 5;
-
 export default function App() {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef(null);
@@ -64,23 +75,18 @@ export default function App() {
   const [watchlistIds, setWatchlistIds] = useLocalStorage("watchlistIds", []);
   const [showWatchlist, setShowWatchlist] = useState(false);
 
-  // current view tab
-  const [page, setPage] = useState(VIEW_TOP_100);
+  const [page, setPage] = useState(PAGE_COMPARE);
 
-  // market pages cache
+  // keep coins per UI page (1,2,5)
   const [coinsByPage, setCoinsByPage] = useState({
-    [VIEW_TOP_100]: [],
-    [VIEW_101_200]: [],
-    [VIEW_201_300]: [],
+    [PAGE_TOP100]: [],
+    [PAGE_101_200]: [],
+    [PAGE_201_300]: [],
   });
 
-  // BTC for stats
-  const [btcCoin, setBtcCoin] = useState(null);
-
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // --- helpers
   function toggleWatchlist(id) {
     setWatchlistIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
@@ -88,7 +94,7 @@ export default function App() {
     });
   }
 
-  // --- hotkey "/" focus search
+  // hotkey "/" focus search
   useEffect(() => {
     function handleKeyDown(e) {
       const tag = document.activeElement?.tagName;
@@ -104,60 +110,44 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // --- which pages should be fetched now
-  const shouldFetchPages = useMemo(() => {
-    // if watchlist enabled — ensure all coin pages are loaded
-    if (showWatchlist) return [VIEW_TOP_100, VIEW_101_200, VIEW_201_300];
-
-    // only fetch when we are on coin pages; Compare/Exit don't need markets fetch
-    if ([VIEW_TOP_100, VIEW_101_200, VIEW_201_300].includes(page)) return [page];
-
+  // which coin pages to fetch
+  const shouldFetchUiPages = useMemo(() => {
+    if (showWatchlist) return COIN_UI_PAGES;
+    if (COIN_UI_PAGES.includes(page)) return [page];
     return [];
   }, [page, showWatchlist]);
 
-  // --- fetch markets (Top100 / 101-200 / 201-300)
+  // fetch markets
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const pagesToFetch = shouldFetchPages;
+      const pagesToFetch = shouldFetchUiPages;
       if (pagesToFetch.length === 0) return;
 
       try {
         setLoading(true);
         setError("");
 
-        // fetch only missing pages
         const missing = pagesToFetch.filter(
-          (p) => !coinsByPage[p] || coinsByPage[p].length === 0
+          (uiP) => !coinsByPage[uiP] || coinsByPage[uiP].length === 0
         );
-
-        if (missing.length === 0) {
-          // already in cache
-          return;
-        }
+        if (missing.length === 0) return;
 
         const results = await Promise.all(
-          missing.map((p) => fetchMarkets({ page: p, perPage: 100 }))
+          missing.map((uiP) => {
+            const marketPage = marketPageFromUiPage(uiP);
+            return fetchMarkets({ page: marketPage, perPage: 100 });
+          })
         );
 
         if (cancelled) return;
 
         setCoinsByPage((prev) => {
           const next = { ...prev };
-          missing.forEach((p, i) => {
-            next[p] = results[i];
+          missing.forEach((uiP, i) => {
+            next[uiP] = results[i];
           });
-
-          // update BTC stats from all loaded pages
-          const all = [
-            ...(next[VIEW_TOP_100] || []),
-            ...(next[VIEW_101_200] || []),
-            ...(next[VIEW_201_300] || []),
-          ];
-          const foundBtc = all.find((c) => c.id === "bitcoin") || null;
-          setBtcCoin(foundBtc);
-
           return next;
         });
       } catch (e) {
@@ -171,73 +161,82 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldFetchPages]);
+  }, [shouldFetchUiPages, coinsByPage]);
 
-  // --- coins for current coin-page view
+  // BTC for stats
+  const btcCoin = useMemo(() => {
+    const all = [
+      ...(coinsByPage[PAGE_TOP100] || []),
+      ...(coinsByPage[PAGE_101_200] || []),
+      ...(coinsByPage[PAGE_201_300] || []),
+    ];
+    return all.find((c) => c.id === "bitcoin") || null;
+  }, [coinsByPage]);
+
+  // coins for current table view
   const coinsForView = useMemo(() => {
-    if (page === VIEW_TOP_100) return coinsByPage[VIEW_TOP_100] || [];
-    if (page === VIEW_101_200) return coinsByPage[VIEW_101_200] || [];
-    if (page === VIEW_201_300) return coinsByPage[VIEW_201_300] || [];
+    if (page === PAGE_TOP100) return coinsByPage[PAGE_TOP100] || [];
+    if (page === PAGE_101_200) return coinsByPage[PAGE_101_200] || [];
+    if (page === PAGE_201_300) return coinsByPage[PAGE_201_300] || [];
     return [];
   }, [page, coinsByPage]);
 
-  // --- list for Compare/Exit (all loaded pages)
+  // list for CryptoCompare / ExitPoints (include price)
   const coinsListForTools = useMemo(() => {
     const all = [
-      ...(coinsByPage[VIEW_TOP_100] || []),
-      ...(coinsByPage[VIEW_101_200] || []),
-      ...(coinsByPage[VIEW_201_300] || []),
+      ...(coinsByPage[PAGE_TOP100] || []),
+      ...(coinsByPage[PAGE_101_200] || []),
+      ...(coinsByPage[PAGE_201_300] || []),
     ];
-    return all.map(({ id, name, symbol }) => ({ id, name, symbol }));
+
+    const map = new Map();
+    for (const c of all) map.set(c.id, c);
+
+    return Array.from(map.values()).map(({ id, name, symbol, price }) => ({
+      id,
+      name,
+      symbol,
+      price,
+    }));
   }, [coinsByPage]);
 
-  // --- visible coins (filter + watchlist + sort)
+  // visible coins
   const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    // base set
     const base = showWatchlist
       ? [
-          ...(coinsByPage[VIEW_TOP_100] || []),
-          ...(coinsByPage[VIEW_101_200] || []),
-          ...(coinsByPage[VIEW_201_300] || []),
+          ...(coinsByPage[PAGE_TOP100] || []),
+          ...(coinsByPage[PAGE_101_200] || []),
+          ...(coinsByPage[PAGE_201_300] || []),
         ]
       : coinsForView;
 
-    // search
     const filtered = !q
       ? base
-      : base.filter((c) => {
-          return (
+      : base.filter(
+          (c) =>
             c.name?.toLowerCase().includes(q) ||
             c.symbol?.toLowerCase().includes(q)
-          );
-        });
+        );
 
-    // watchlist filter
     const withWatchlistFilter = showWatchlist
       ? filtered.filter((c) => watchlistIds.includes(c.id))
       : filtered;
 
-    // sort
-    const sorted = [...withWatchlistFilter].sort((a, b) => {
+    return [...withWatchlistFilter].sort((a, b) => {
       const aVal = a?.[sort.key];
       const bVal = b?.[sort.key];
       if (aVal === bVal) return 0;
       const order = aVal > bVal ? 1 : -1;
       return sort.dir === "asc" ? order : -order;
     });
-
-    return sorted;
   }, [search, showWatchlist, watchlistIds, sort, coinsForView, coinsByPage]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Topbar */}
       <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          {/* Logo */}
           <div className="flex items-center gap-3">
             <BlockViewLogo size={65} />
             <div className="leading-tight">
@@ -246,7 +245,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="ml-auto flex items-center gap-2">
             <div className="hidden md:block">
               <input
@@ -258,7 +256,6 @@ export default function App() {
               />
             </div>
 
-            {/* Watchlist */}
             <button
               type="button"
               onClick={() => setShowWatchlist((v) => !v)}
@@ -274,16 +271,9 @@ export default function App() {
             <button
               type="button"
               className="
-                px-4 py-2
-                rounded-xl
-                font-medium
-                text-slate-900
-                bg-orange-500
-                shadow-[0_0_18px_rgba(251,146,60,0.45)]
-                ring-1 ring-amber-300/30
-                transition
-                hover:bg-orange-400
-                hover:shadow-[0_0_22px_rgba(251,146,60,0.6)]
+                px-4 py-2 rounded-xl font-medium text-slate-900 bg-orange-500
+                shadow-[0_0_18px_rgba(251,146,60,0.45)] ring-1 ring-amber-300/30
+                transition hover:bg-orange-400 hover:shadow-[0_0_22px_rgba(251,146,60,0.6)]
                 active:scale-[0.98]
               "
             >
@@ -293,9 +283,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Content */}
       <main className="mx-auto max-w-6xl px-4 py-6">
-        {/* Stats row */}
         <div className="grid gap-3 md:grid-cols-3">
           <Stat label="Market" value="Risk-On" hint="Demo UI (no API yet)" />
           <Stat label="Top Gainer (24h)" value="+8.42%" hint="SOL (mock)" />
@@ -312,7 +300,6 @@ export default function App() {
           />
         </div>
 
-        {/* Screener card */}
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/30">
           <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
             <span className="text-sm font-semibold">Screener</span>
@@ -325,11 +312,11 @@ export default function App() {
                 value={page}
                 onChange={setPage}
                 items={[
-                  { value: VIEW_COMPARE, label: "Crypto Compare" },
-                  { value: VIEW_EXIT_POINTS, label: "Exit Points" },
-                  { value: VIEW_TOP_100, label: "Top 100" },
-                  { value: VIEW_101_200, label: "101–200" },
-                  { value: VIEW_201_300, label: "201–300" },
+                  { value: PAGE_COMPARE, label: "Crypto Compare" },
+                  { value: PAGE_EXIT, label: "Exit Points" },
+                  { value: PAGE_TOP100, label: "Top 100" },
+                  { value: PAGE_101_200, label: "101–200" },
+                  { value: PAGE_201_300, label: "201–300" },
                 ]}
               />
             </div>
@@ -350,9 +337,18 @@ export default function App() {
 
             {!error && (
               <>
-                {page === VIEW_COMPARE ? (
+                {showWatchlist ? (
+                  <CoinsTable
+                    coins={visibleCoins}
+                    sort={sort}
+                    onSortChange={setSort}
+                    watchlistIds={watchlistIds}
+                    onToggleWatchlist={toggleWatchlist}
+                    loading={loading}
+                  />
+                ) : page === PAGE_COMPARE ? (
                   <CryptoCompare coinsList={coinsListForTools} />
-                ) : page === VIEW_EXIT_POINTS ? (
+                ) : page === PAGE_EXIT ? (
                   <ExitPoints coinsList={coinsListForTools} />
                 ) : (
                   <CoinsTable

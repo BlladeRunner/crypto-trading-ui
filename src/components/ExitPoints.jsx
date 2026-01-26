@@ -1,5 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatMoney } from "../utils/format";
+
+/* ---------------- helpers ---------------- */
+function clampNum(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function makeId() {
+  // stable enough for UI rows
+  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+}
 
 function StatCard({ label, value, sub, tone = "default" }) {
   const toneClass =
@@ -18,7 +29,7 @@ function StatCard({ label, value, sub, tone = "default" }) {
   );
 }
 
-function PillBtn({ active, onClick, children }) {
+function PillBtn({ active = false, onClick, children }) {
   return (
     <button
       type="button"
@@ -34,48 +45,76 @@ function PillBtn({ active, onClick, children }) {
   );
 }
 
-function clampNum(v, fallback = 0) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function uid() {
-  return Math.random().toString(16).slice(2);
-}
-
+/* ---------------- component ---------------- */
 export default function ExitPoints({ coinsList = [] }) {
-  // Optional coin selection (for UX), but calculator works without it
-  const coins = useMemo(
-    () => [...coinsList].sort((a, b) => a.name.localeCompare(b.name)),
-    [coinsList]
-  );
+  // Sort coins for select
+  const coins = useMemo(() => {
+    return [...coinsList]
+      .filter((c) => c && c.id && c.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [coinsList]);
 
   const [coinId, setCoinId] = useState("");
   const [entry, setEntry] = useState("1");
   const [tokens, setTokens] = useState("1000");
 
-  const [tps, setTps] = useState([
-    { id: uid(), price: "1.5", pct: "30" },
-    { id: uid(), price: "2.0", pct: "30" },
-    { id: uid(), price: "3.0", pct: "40" },
+  const [tps, setTps] = useState(() => [
+    { id: makeId(), price: "1.5", pct: "30" },
+    { id: makeId(), price: "2.0", pct: "30" },
+    { id: makeId(), price: "3.0", pct: "40" },
   ]);
+
+  const coinMeta = useMemo(() => {
+    return coins.find((c) => c.id === coinId) || null;
+  }, [coins, coinId]);
+
+  // Auto-fill entry when user selects coin (only if entry is default-ish or empty)
+  const didAutoFillRef = useRef(false);
+  useEffect(() => {
+    if (!coinMeta) return;
+
+    const p = clampNum(coinMeta.price, 0);
+    if (!p) return;
+
+    // Auto-fill only once per selection to avoid fighting user input
+    didAutoFillRef.current = false;
+  }, [coinId, coinMeta]);
+
+  useEffect(() => {
+    if (!coinMeta) return;
+    const p = clampNum(coinMeta.price, 0);
+    if (!p) return;
+
+    if (didAutoFillRef.current) return;
+
+    const entryN = clampNum(entry, 0);
+    const entryStr = String(entry ?? "").trim();
+
+    const looksDefault =
+      entryStr === "" || entryStr === "0" || entryStr === "1" || entryN === 0;
+
+    if (looksDefault) {
+      setEntry(p < 1 ? p.toFixed(6) : p.toFixed(2));
+      didAutoFillRef.current = true;
+    }
+  }, [coinMeta, entry]);
 
   const entryN = clampNum(entry, 0);
   const tokensN = clampNum(tokens, 0);
-
   const invested = entryN * tokensN;
 
-  const totalPct = useMemo(
-    () => tps.reduce((sum, r) => sum + clampNum(r.pct, 0), 0),
-    [tps]
-  );
+  const totalPct = useMemo(() => {
+    return tps.reduce((sum, r) => sum + clampNum(r.pct, 0), 0);
+  }, [tps]);
 
   const rows = useMemo(() => {
     return tps.map((r) => {
       const priceN = clampNum(r.price, 0);
       const pctN = clampNum(r.pct, 0);
+
       const soldTokens = (tokensN * pctN) / 100;
       const proceeds = soldTokens * priceN;
+
       const costBasis = soldTokens * entryN;
       const profit = proceeds - costBasis;
       const profitPct = costBasis > 0 ? (profit / costBasis) * 100 : 0;
@@ -93,19 +132,18 @@ export default function ExitPoints({ coinsList = [] }) {
   }, [tps, entryN, tokensN]);
 
   const summary = useMemo(() => {
-    const soldPct = totalPct;
     const soldTokens = rows.reduce((s, r) => s + r.soldTokens, 0);
     const proceeds = rows.reduce((s, r) => s + r.proceeds, 0);
+
     const costBasis = soldTokens * entryN;
     const profit = proceeds - costBasis;
     const profitPct = costBasis > 0 ? (profit / costBasis) * 100 : 0;
 
     const remainingTokens = Math.max(tokensN - soldTokens, 0);
-
     const avgExit = soldTokens > 0 ? proceeds / soldTokens : 0;
 
     return {
-      soldPct,
+      soldPct: totalPct,
       soldTokens,
       proceeds,
       profit,
@@ -115,13 +153,8 @@ export default function ExitPoints({ coinsList = [] }) {
     };
   }, [rows, entryN, tokensN, totalPct]);
 
-  const coinMeta = useMemo(
-    () => coins.find((c) => c.id === coinId),
-    [coins, coinId]
-  );
-
   function addTp() {
-    setTps((prev) => [...prev, { id: uid(), price: "", pct: "" }]);
+    setTps((prev) => [...prev, { id: makeId(), price: "", pct: "" }]);
   }
 
   function removeTp(id) {
@@ -137,24 +170,20 @@ export default function ExitPoints({ coinsList = [] }) {
     setEntry("1");
     setTokens("1000");
     setTps([
-      { id: uid(), price: "1.5", pct: "30" },
-      { id: uid(), price: "2.0", pct: "30" },
-      { id: uid(), price: "3.0", pct: "40" },
+      { id: makeId(), price: "1.5", pct: "30" },
+      { id: makeId(), price: "2.0", pct: "30" },
+      { id: makeId(), price: "3.0", pct: "40" },
     ]);
   }
 
   function autoSplit3() {
-    // keep current prices if present, only normalize pct to 30/30/40
     setTps((prev) => {
       const base = prev.slice(0, 3);
       const next = [
-        base[0] || { id: uid(), price: "1.5", pct: "30" },
-        base[1] || { id: uid(), price: "2.0", pct: "30" },
-        base[2] || { id: uid(), price: "3.0", pct: "40" },
-      ].map((r, i) => ({
-        ...r,
-        pct: i === 2 ? "40" : "30",
-      }));
+        base[0] || { id: makeId(), price: "1.5", pct: "30" },
+        base[1] || { id: makeId(), price: "2.0", pct: "30" },
+        base[2] || { id: makeId(), price: "3.0", pct: "40" },
+      ].map((r, i) => ({ ...r, pct: i === 2 ? "40" : "30" }));
       return next;
     });
   }
@@ -167,7 +196,7 @@ export default function ExitPoints({ coinsList = [] }) {
       : "";
 
   return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/30">
+    <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/30">
       {/* Header */}
       <div className="flex flex-col gap-2 border-b border-slate-800 px-4 py-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -196,13 +225,27 @@ export default function ExitPoints({ coinsList = [] }) {
               <option value="">Select coin…</option>
               {coins.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.symbol})
+                  {c.name} ({String(c.symbol || "").toUpperCase()})
                 </option>
               ))}
             </select>
+
             <div className="mt-2 text-xs text-slate-500">
-              {coinMeta ? `Selected: ${coinMeta.name} (${coinMeta.symbol})` : "—"}
+              {coinMeta
+                ? `Selected: ${coinMeta.name} (${String(
+                    coinMeta.symbol || ""
+                  ).toUpperCase()})`
+                : "—"}
             </div>
+
+            {coinMeta?.price ? (
+              <div className="mt-1 text-xs text-slate-500">
+                Current price:{" "}
+                <span className="font-mono text-slate-200">
+                  ${formatMoney(clampNum(coinMeta.price, 0), 6)}
+                </span>
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
@@ -224,7 +267,7 @@ export default function ExitPoints({ coinsList = [] }) {
             <input
               value={tokens}
               onChange={(e) => setTokens(e.target.value)}
-              inputMode="numeric"
+              inputMode="decimal"
               placeholder="e.g. 1000"
               className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2 text-sm outline-none placeholder:text-slate-600 focus:border-amber-400"
             />
@@ -264,15 +307,17 @@ export default function ExitPoints({ coinsList = [] }) {
               </thead>
 
               <tbody>
-                {rows.map((r, idx) => (
+                {rows.map((r) => (
                   <tr
                     key={r.id}
                     className="border-t border-slate-800 hover:bg-slate-900/30"
                   >
                     <td className="px-4 py-3">
                       <input
-                        value={tps[idx].price}
-                        onChange={(e) => updateTp(r.id, { price: e.target.value })}
+                        value={r.price}
+                        onChange={(e) =>
+                          updateTp(r.id, { price: e.target.value })
+                        }
                         inputMode="decimal"
                         placeholder="e.g. 1.25"
                         className="w-36 rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2 font-mono text-sm outline-none placeholder:text-slate-700 focus:border-amber-400"
@@ -282,7 +327,7 @@ export default function ExitPoints({ coinsList = [] }) {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <input
-                          value={tps[idx].pct}
+                          value={r.pct}
                           onChange={(e) => updateTp(r.id, { pct: e.target.value })}
                           inputMode="decimal"
                           placeholder="e.g. 25"
@@ -305,11 +350,13 @@ export default function ExitPoints({ coinsList = [] }) {
                         r.profit >= 0 ? "text-emerald-300" : "text-rose-300"
                       }`}
                     >
-                      {r.profit >= 0 ? "+" : ""}
-                      ${formatMoney(r.profit, 2)}{" "}
+                      {r.profit >= 0 ? "+" : ""}${formatMoney(r.profit, 2)}{" "}
                       <span className="text-xs text-slate-500">
                         ({r.profitPct >= 0 ? "+" : ""}
-                        {Number.isFinite(r.profitPct) ? r.profitPct.toFixed(2) : "0.00"}%)
+                        {Number.isFinite(r.profitPct)
+                          ? r.profitPct.toFixed(2)
+                          : "0.00"}
+                        %)
                       </span>
                     </td>
 
@@ -335,7 +382,8 @@ export default function ExitPoints({ coinsList = [] }) {
                 totalPct > 100 ? "text-rose-200" : "text-slate-400"
               }`}
             >
-              {pctWarn} (Total: <span className="font-mono">{formatMoney(totalPct, 2)}%</span>)
+              {pctWarn} (Total:{" "}
+              <span className="font-mono">{formatMoney(totalPct, 2)}%</span>)
             </div>
           ) : null}
         </div>
@@ -349,8 +397,13 @@ export default function ExitPoints({ coinsList = [] }) {
           />
           <StatCard
             label="Total profit"
-            value={`${summary.profit >= 0 ? "+" : ""}$${formatMoney(summary.profit, 2)}`}
-            sub={`${summary.profitPct >= 0 ? "+" : ""}${summary.profitPct.toFixed(2)}% vs sold cost basis`}
+            value={`${summary.profit >= 0 ? "+" : ""}$${formatMoney(
+              summary.profit,
+              2
+            )}`}
+            sub={`${summary.profitPct >= 0 ? "+" : ""}${summary.profitPct.toFixed(
+              2
+            )}% vs sold cost basis`}
             tone={summary.profit >= 0 ? "pos" : "neg"}
           />
           <StatCard
@@ -360,7 +413,11 @@ export default function ExitPoints({ coinsList = [] }) {
           />
           <StatCard
             label="Avg exit price"
-            value={summary.soldTokens > 0 ? `$${formatMoney(summary.avgExit, 4)}` : "—"}
+            value={
+              summary.soldTokens > 0
+                ? `$${formatMoney(summary.avgExit, 6)}`
+                : "—"
+            }
             sub="Weighted by sold amount"
           />
         </div>
