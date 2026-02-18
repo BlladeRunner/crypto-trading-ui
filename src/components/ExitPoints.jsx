@@ -8,7 +8,6 @@ function clampNum(v, fallback = 0) {
 }
 
 function makeId() {
-  // stable enough for UI rows
   return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
 }
 
@@ -68,7 +67,6 @@ export default function ExitPoints({ coinsList = [] }) {
     return coins.find((c) => c.id === coinId) || null;
   }, [coins, coinId]);
 
-  // Auto-fill entry when user selects coin (only if entry is default-ish or empty)
   const didAutoFillRef = useRef(false);
   useEffect(() => {
     if (!coinMeta) return;
@@ -76,7 +74,6 @@ export default function ExitPoints({ coinsList = [] }) {
     const p = clampNum(coinMeta.price, 0);
     if (!p) return;
 
-    // Auto-fill only once per selection to avoid fighting user input
     didAutoFillRef.current = false;
   }, [coinId, coinMeta]);
 

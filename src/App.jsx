@@ -9,7 +9,6 @@ import ExitPoints from "./components/ExitPoints";
 import useLocalStorage from "./hooks/useLocalStorage";
 import { fetchMarkets } from "./api/coingecko";
 
-/* ---------- UI page ids (KEEP OUTSIDE App) ---------- */
 const PAGE_TOP100 = 1;
 const PAGE_101_200 = 2;
 const PAGE_COMPARE = 3;
@@ -18,7 +17,6 @@ const PAGE_201_300 = 5;
 
 const COIN_UI_PAGES = [PAGE_TOP100, PAGE_101_200, PAGE_201_300];
 
-// Map UI page -> CoinGecko markets "page"
 function marketPageFromUiPage(uiPage) {
   if (uiPage === PAGE_TOP100) return 1;
   if (uiPage === PAGE_101_200) return 2;
@@ -36,12 +34,6 @@ function Stat({ label, value, hint }) {
   );
 }
 
-/**
- * SegmentedTabs
- * value: number
- * onChange: (next:number)=>void
- * items: [{ value:number, label:string }]
- */
 function SegmentedTabs({ value, onChange, items }) {
   return (
     <div className="inline-flex items-center rounded-full border border-slate-800 bg-slate-900/40 p-1">
@@ -77,7 +69,6 @@ export default function App() {
 
   const [page, setPage] = useState(PAGE_COMPARE);
 
-  // keep coins per UI page (1,2,5)
   const [coinsByPage, setCoinsByPage] = useState({
     [PAGE_TOP100]: [],
     [PAGE_101_200]: [],
@@ -94,7 +85,6 @@ export default function App() {
     });
   }
 
-  // hotkey "/" focus search
   useEffect(() => {
     function handleKeyDown(e) {
       const tag = document.activeElement?.tagName;
@@ -110,14 +100,12 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // which coin pages to fetch
   const shouldFetchUiPages = useMemo(() => {
-    if (showWatchlist) return COIN_UI_PAGES;
+    if (page === PAGE_COMPARE || page === PAGE_EXIT) return COIN_UI_PAGES;
     if (COIN_UI_PAGES.includes(page)) return [page];
     return [];
   }, [page, showWatchlist]);
 
-  // fetch markets
   useEffect(() => {
     let cancelled = false;
 
@@ -163,7 +151,6 @@ export default function App() {
     };
   }, [shouldFetchUiPages, coinsByPage]);
 
-  // BTC for stats
   const btcCoin = useMemo(() => {
     const all = [
       ...(coinsByPage[PAGE_TOP100] || []),
@@ -173,7 +160,6 @@ export default function App() {
     return all.find((c) => c.id === "bitcoin") || null;
   }, [coinsByPage]);
 
-  // coins for current table view
   const coinsForView = useMemo(() => {
     if (page === PAGE_TOP100) return coinsByPage[PAGE_TOP100] || [];
     if (page === PAGE_101_200) return coinsByPage[PAGE_101_200] || [];
@@ -181,7 +167,6 @@ export default function App() {
     return [];
   }, [page, coinsByPage]);
 
-  // list for CryptoCompare / ExitPoints (include price)
   const coinsListForTools = useMemo(() => {
     const all = [
       ...(coinsByPage[PAGE_TOP100] || []),
@@ -200,7 +185,6 @@ export default function App() {
     }));
   }, [coinsByPage]);
 
-  // visible coins
   const visibleCoins = useMemo(() => {
     const q = search.trim().toLowerCase();
 
